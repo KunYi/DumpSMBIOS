@@ -479,7 +479,7 @@ void DumpSMBIOSStruct(void *Addr, UINT Len)
 		PBYTE nt = p + pHeader->Length; // point to struct end
 		while (0 != (*nt | *(nt + 1))) nt++; // skip string area
 		nt += 2;
-		if ((DWORD)nt > lastAddress)
+		if ((DWORD)nt >= lastAddress)
 			break;
 		p = nt;
 	}
