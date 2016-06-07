@@ -203,7 +203,7 @@ bool SMBIOS::ProcBoardInfo(SMBIOS* T, void* p)
 	T->m_wszBoardManufactor = new WCHAR[nManufactor + 1];
 	T->m_wszBoardProductName = new WCHAR[nProductName + 1];
 	T->m_wszBoardVersion = new WCHAR[nVersion + 1];
-	T->m_wszBoardSerialNumber = new WCHAR[nVersion + 1];
+	T->m_wszBoardSerialNumber = new WCHAR[nSerialNumber + 1];
 	T->m_wszBoardAssetTag = new WCHAR[nAssetTag + 1];
 
 	if (T->m_wszBoardManufactor)
