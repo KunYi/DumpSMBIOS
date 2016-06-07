@@ -32,5 +32,8 @@
     <ClCompile Include="DumpSMBIOS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="smbios.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
