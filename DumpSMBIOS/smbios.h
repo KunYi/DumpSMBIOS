@@ -63,4 +63,5 @@ private:
 	static bool ProcBoardInfo(SMBIOS* T, void* p);
 	void ParseSMBIOSStruct(void* Addr, UINT Len);
 	bool DispatchStructType(void* pHdr);
+	bool getWmiSmbios(BYTE ** data, UINT * length);
 };
