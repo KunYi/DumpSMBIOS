@@ -1,6 +1,13 @@
 #include "stdafx.h"
 #include "smbios.h"
 
+#include <wbemidl.h>
+#include <sstream>
+#include <comdef.h>
+#pragma comment(lib, "Wbemuuid.lib")
+
+typedef UINT(WINAPI *GET_SYSTEM_FIRMWARE_TABLE) (DWORD, DWORD, PVOID, DWORD);
+
 #pragma pack(push) 
 #pragma pack(1)
 typedef struct _RawSMBIOSData
@@ -203,7 +210,7 @@ bool SMBIOS::ProcBoardInfo(SMBIOS* T, void* p)
 	T->m_wszBoardManufactor = new WCHAR[nManufactor + 1];
 	T->m_wszBoardProductName = new WCHAR[nProductName + 1];
 	T->m_wszBoardVersion = new WCHAR[nVersion + 1];
-	T->m_wszBoardSerialNumber = new WCHAR[nVersion + 1];
+	T->m_wszBoardSerialNumber = new WCHAR[nSerialNumber + 1];
 	T->m_wszBoardAssetTag = new WCHAR[nAssetTag + 1];
 
 	if (T->m_wszBoardManufactor)
@@ -363,25 +370,137 @@ const SMBIOS& SMBIOS::getInstance(void)
 
 void SMBIOS::initialization(void)
 {
-	DWORD needBufferSize = 0;
+	GET_SYSTEM_FIRMWARE_TABLE pGetSystemFirmwareTable = (GET_SYSTEM_FIRMWARE_TABLE)GetProcAddress(GetModuleHandle(L"kernel32"), "GetSystemFirmwareTable");
+
 	LPBYTE pBuff = NULL;
-	DWORD Signature = 'R';
-	Signature = (Signature << 8) + 'S';
-	Signature = (Signature << 8) + 'M';
-	Signature = (Signature << 8) + 'B';
-	
-	needBufferSize = GetSystemFirmwareTable(Signature, 0, NULL, 0);
-	pBuff = new BYTE[needBufferSize];
-	if (pBuff)
+
+	PBYTE tableStart = nullptr;
+	UINT nTableLength = 0;
+
+	if (pGetSystemFirmwareTable)
 	{
-		GetSystemFirmwareTable(Signature, 0, pBuff, needBufferSize);
+		DWORD needBufferSize = 0;
+		
+		DWORD Signature = 'R';
+		Signature = (Signature << 8) + 'S';
+		Signature = (Signature << 8) + 'M';
+		Signature = (Signature << 8) + 'B';
+
+		needBufferSize = pGetSystemFirmwareTable(Signature, 0, NULL, 0);
+		pBuff = new BYTE[needBufferSize];
+
+		pGetSystemFirmwareTable(Signature, 0, pBuff, needBufferSize);
+
 		const PRawSMBIOSData pDMIData = (PRawSMBIOSData)pBuff;
 		MajorVersion = pDMIData->MajorVersion;
 		MinorVersion = pDMIData->MinorVersion;
 		DMIRevision = pDMIData->DmiRevision;
-		ParseSMBIOSStruct(&(pDMIData->SMBIOSTableData), pDMIData->Length);
+
+		tableStart = (PBYTE)&(pDMIData->SMBIOSTableData);
+		nTableLength = pDMIData->Length;
 	}
+	else if (getWmiSmbios(&pBuff, &nTableLength))
+	{
+		tableStart = pBuff;
+	}
+
+	if (tableStart)
+		ParseSMBIOSStruct(tableStart, nTableLength);
+
 	if (pBuff)
-		delete pBuff;
+		delete[] pBuff;
+}
+
+bool SMBIOS::getWmiSmbios(BYTE ** data, UINT * length)
+{
+	IWbemServices *  pSvc = NULL;
+	IWbemServices *  pSvcSmbios = NULL;
+	IWbemLocator *   pLoc = NULL;
+	HRESULT            result;
+	IEnumWbemClassObject *  pEnumerator = NULL;
+	std::wostringstream     query;
+	std::wstring            q;
+	IWbemClassObject *      pInstance = NULL;
+	VARIANT                 vtProp;
+	ULONG                   uReturn = 0;
+	CIMTYPE                 pvtType;
+
+	result = CoInitialize(NULL);
+
+	if (SUCCEEDED(result)) 
+	{
+		result = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
+
+		if (SUCCEEDED(result)) 
+		{
+			result = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID *)&pLoc);
+
+			if (SUCCEEDED(result)) 
+			{
+				result = pLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pSvc);
+
+				if (SUCCEEDED(result)) 
+				{
+					result = CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+
+					if (SUCCEEDED(result)) 
+					{
+						result = pLoc->ConnectServer(_bstr_t(L"ROOT\\WMI"), NULL, NULL, 0, NULL, 0, 0, &pSvcSmbios);
+
+						if (SUCCEEDED(result)) 
+						{
+							result = CoSetProxyBlanket(pSvcSmbios, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+							
+							if (SUCCEEDED(result)) 
+							{
+								result = pSvcSmbios->CreateInstanceEnum(L"MSSMBios_RawSMBiosTables", 0, NULL, &pEnumerator);
+
+								if (SUCCEEDED(result)) 
+								{
+									while (pEnumerator) 
+									{
+										result = pEnumerator->Next(WBEM_INFINITE, 1, &pInstance, &uReturn);
+
+										if (!uReturn) {
+											break;
+										}
+
+										VariantInit(&vtProp);
+
+										result = pInstance->Get(bstr_t("SMBiosData"), 0, &vtProp, &pvtType, NULL);
+
+										if (SUCCEEDED(result)) 
+										{
+											SAFEARRAY * array = V_ARRAY(&vtProp);
+
+											*length = array->rgsabound[0].cElements;
+											*data = new BYTE[*length];
+											memcpy(*data, (BYTE*)array->pvData, *length);
+											VariantClear(&vtProp);
+										}
+									}
+
+									pEnumerator->Release();
+
+									if (pInstance) 
+										pInstance->Release();
+								}
+							}
+
+							pSvcSmbios->Release();
+						}
+					}
+
+					pSvc->Release();
+				}
+
+				pLoc->Release();
+			}
+		}
+
+		CoUninitialize();
+	}
+
+	return true;
 }
 
