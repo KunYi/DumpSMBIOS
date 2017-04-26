@@ -166,7 +166,7 @@ typedef struct _TYPE_22_ {
 	UCHAR	DeviceName;
 
 } PortableBattery, *PPortableBattery;
-#pragma pack(push) 
+#pragma pack(pop) 
 
 #ifdef UNICODE
 #define getHeaderString  getHeaderStringW
