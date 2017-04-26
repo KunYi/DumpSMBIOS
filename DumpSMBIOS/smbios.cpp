@@ -70,7 +70,7 @@ typedef struct _TYPE_2_ {
 	UINT16	*pObjHandle;
 } BoardInfo, *PBoardInfo;
 
-#pragma pack(push) 
+#pragma pack(pop) 
 
 static const char* LocateStringA(const char* str, UINT i)
 {
