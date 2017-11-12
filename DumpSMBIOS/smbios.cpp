@@ -97,9 +97,9 @@ bool SMBIOS::ProcBIOSInfo(SMBIOS* T, void* p)
 	const char* Vendor = LocateStringA(str, pBIOS->Vendor);
 	const char* Version = LocateStringA(str, pBIOS->Version);
 	const char* Date = LocateStringA(str, pBIOS->ReleaseDate);
-	const size_t nVendor = strlen(Vendor);
-	const size_t nVersion = strlen(Version);
-	const size_t nDate = strlen(Date);
+	const int nVendor = (int) strlen(Vendor);
+	const int nVersion = (int) strlen(Version);
+	const int nDate = (int) strlen(Date);
 
 	T->m_wszBIOSVendor = new WCHAR[nVendor + 1];
 	T->m_wszBIOSVersion = new WCHAR[nVersion + 1];
@@ -135,10 +135,10 @@ bool SMBIOS::ProcSysInfo(SMBIOS* T, void* p)
 	const char* ProductName = LocateStringA(str, pSystem->ProductName);
 	const char* Version = LocateStringA(str, pSystem->Version);
 	const char* SerialNumber = LocateStringA(str, pSystem->SN);
-	const size_t nManufactor = strlen(Manufactor);
-	const size_t nProductName = strlen(ProductName);
-	const size_t nVersion = strlen(Version);
-	const size_t nSerialNumber = strlen(SerialNumber);
+	const int nManufactor = (int) strlen(Manufactor);
+	const int nProductName = (int) strlen(ProductName);
+	const int nVersion = (int) strlen(Version);
+	const int nSerialNumber = (int) strlen(SerialNumber);
 
 	T->m_wszSysManufactor = new WCHAR[nManufactor + 1];
 	T->m_wszSysProductName = new WCHAR[nProductName + 1];
@@ -173,8 +173,8 @@ bool SMBIOS::ProcSysInfo(SMBIOS* T, void* p)
 	{
 		const char* SKU = LocateStringA(str, pSystem->SKUNumber);
 		const char* Family = LocateStringA(str, pSystem->Family);
-		const size_t nSKU = strlen(SKU);
-		const size_t nFamily = strlen(Family);
+		const int nSKU = (int) strlen(SKU);
+		const int nFamily = (int) strlen(Family);
 
 		T->m_wszSysSKU = new WCHAR[nSKU + 1];
 		T->m_wszSysFamily = new WCHAR[nFamily + 1];
@@ -201,11 +201,11 @@ bool SMBIOS::ProcBoardInfo(SMBIOS* T, void* p)
 	const char* Version = LocateStringA(str, pBoard->Version);
 	const char* SerialNumber = LocateStringA(str, pBoard->SN);
 	const char* AssetTag = LocateStringA(str, pBoard->AssetTag);
-	const size_t nManufactor = strlen(Manufactor);
-	const size_t nProductName = strlen(ProductName);
-	const size_t nVersion = strlen(Version);
-	const size_t nSerialNumber = strlen(SerialNumber);
-	const size_t nAssetTag = strlen(AssetTag);
+	const int nManufactor = (int) strlen(Manufactor);
+	const int nProductName = (int) strlen(ProductName);
+	const int nVersion = (int) strlen(Version);
+	const int nSerialNumber = (int) strlen(SerialNumber);
+	const int nAssetTag = (int) strlen(AssetTag);
 
 	T->m_wszBoardManufactor = new WCHAR[nManufactor + 1];
 	T->m_wszBoardProductName = new WCHAR[nProductName + 1];
@@ -282,7 +282,7 @@ bool SMBIOS::DispatchStructType(void* pHdr)
 void SMBIOS::ParseSMBIOSStruct(void* Addr, UINT Len)
 {
 	LPBYTE p = (LPBYTE)(Addr);
-	const DWORD lastAddress = ((DWORD)p) + Len;
+	const LPBYTE lastAddress = p + Len;
 	PSMBIOSHEADER pHeader;
 
 	for (;;) {
@@ -291,7 +291,7 @@ void SMBIOS::ParseSMBIOSStruct(void* Addr, UINT Len)
 		LPBYTE nt = p + pHeader->Length; // point to struct end
 		while (0 != (*nt | *(nt + 1))) nt++; // skip string area
 		nt += 2;
-		if ((DWORD)nt >= lastAddress)
+		if (nt >= lastAddress)
 			break;
 		p = nt;
 	}

@@ -215,7 +215,7 @@ const wchar_t* getHeaderStringW(const UINT type)
 	static wchar_t buff[2048];
 	const char* pStr = getHeaderStringA(type);
 	SecureZeroMemory(buff, sizeof(buff));
-	MultiByteToWideChar(CP_OEMCP, 0, pStr, strlen(pStr), buff, sizeof(buff));
+	MultiByteToWideChar(CP_OEMCP, 0, pStr, (int) strlen(pStr), buff, sizeof(buff));
 	return buff;
 }
 
@@ -237,7 +237,7 @@ const wchar_t* LocateStringW(const char* str, UINT i)
 	static wchar_t buff[2048];
 	const char *pStr = LocateStringA(str, i);
 	SecureZeroMemory(buff, sizeof(buff));
-	MultiByteToWideChar(CP_OEMCP, 0, pStr, strlen(pStr), buff, sizeof(buff));
+	MultiByteToWideChar(CP_OEMCP, 0, pStr, (int) strlen(pStr), buff, sizeof(buff));
 	return buff;
 }
 
@@ -470,16 +470,16 @@ bool DispatchStructType(PSMBIOSHEADER hdr)
 void DumpSMBIOSStruct(void *Addr, UINT Len)
 {
 	LPBYTE p = (LPBYTE)(Addr);
-	const DWORD lastAddress = ((DWORD)p) + Len;
+	const LPBYTE lastAddress = p + Len;
 	PSMBIOSHEADER pHeader;
 
 	for (;;) {
 		pHeader = (PSMBIOSHEADER)p;
 		DispatchStructType(pHeader);
-		PBYTE nt = p + pHeader->Length; // point to struct end
+		LPBYTE nt = p + pHeader->Length; // point to struct end
 		while (0 != (*nt | *(nt + 1))) nt++; // skip string area
 		nt += 2;
-		if ((DWORD)nt >= lastAddress)
+		if (nt >= lastAddress)
 			break;
 		p = nt;
 	}
@@ -505,8 +505,11 @@ int _tmain(int argc, _TCHAR* argv[])
 		_tprintf(TEXT("SMBIOS version:%d.%d\n"), pDMIData->SMBIOSMajorVersion, pDMIData->SMBIOSMinorVersion);
 		_tprintf(TEXT("DMI Revision:%x\n"), pDMIData->DmiRevision);
 		_tprintf(TEXT("Total length: %d\n"), pDMIData->Length);
-		_tprintf(TEXT("DMI at address %x\n"), (DWORD)((PBYTE)&pDMIData->SMBIOSTableData));
-
+#ifdef _WIN64
+		_tprintf(TEXT("DMI at address %llx\n"), (unsigned long long)&pDMIData->SMBIOSTableData);
+#else
+		_tprintf(TEXT("DMI at address %x\n"), (unsigned int)&pDMIData->SMBIOSTableData);
+#endif
 		DumpSMBIOSStruct(&(pDMIData->SMBIOSTableData), pDMIData->Length);
 	}
 	else
