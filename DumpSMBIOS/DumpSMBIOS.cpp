@@ -476,6 +476,8 @@ void DumpSMBIOSStruct(void *Addr, UINT Len)
 	for (;;) {
 		pHeader = (PSMBIOSHEADER)p;
 		DispatchStructType(pHeader);
+		if ((pHeader->Type == 127) && (pHeader->Length == 4))
+			break; // last avaiable tables
 		LPBYTE nt = p + pHeader->Length; // point to struct end
 		while (0 != (*nt | *(nt + 1))) nt++; // skip string area
 		nt += 2;
