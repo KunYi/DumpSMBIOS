@@ -287,6 +287,8 @@ void SMBIOS::ParseSMBIOSStruct(void* Addr, UINT Len)
 
 	for (;;) {
 		pHeader = (PSMBIOSHEADER)p;
+		if (pHeader->Type == 127 && pHeader->Length == 4)
+			break; // last avaiable table
 		DispatchStructType((void*)p);
 		LPBYTE nt = p + pHeader->Length; // point to struct end
 		while (0 != (*nt | *(nt + 1))) nt++; // skip string area
