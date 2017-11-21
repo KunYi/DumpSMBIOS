@@ -505,11 +505,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		_tprintf(TEXT("SMBIOS version:%d.%d\n"), pDMIData->SMBIOSMajorVersion, pDMIData->SMBIOSMinorVersion);
 		_tprintf(TEXT("DMI Revision:%x\n"), pDMIData->DmiRevision);
 		_tprintf(TEXT("Total length: %d\n"), pDMIData->Length);
-#ifdef _WIN64
-		_tprintf(TEXT("DMI at address %llx\n"), (unsigned long long)&pDMIData->SMBIOSTableData);
-#else
-		_tprintf(TEXT("DMI at address %x\n"), (unsigned int)&pDMIData->SMBIOSTableData);
-#endif
+		_tprintf(TEXT("DMI at address %p\n"), &pDMIData->SMBIOSTableData);
 		DumpSMBIOSStruct(&(pDMIData->SMBIOSTableData), pDMIData->Length);
 	}
 	else
