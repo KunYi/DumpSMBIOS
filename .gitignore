@@ -31,5 +31,8 @@
 *.sdf
 *.suo
 *.opensdf
+*.VC.db
+*.VC.opendb
+
 Debug
 Release
