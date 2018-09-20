@@ -1,0 +1,31 @@
+------------------------------------------------------------------------------
+         Name : SysInfo.dll    + SysInfo.sys, SysInfoNT4.sys, SysInfo.vxd
+                SysInfoX64.dll + SysInfoX64.sys
+    Developer : hiyohiyo (Crystal Dew World)
+         Mail : hiyohiyo@crystalmark.info
+          Web : Crystal Dew World (http://crystalmark.info/)
+  Environment : Windows Vista/2003/XP/2000/NT4/Me/98/95 [x86]
+                Windows Vista/2003/XP [x64]
+      Licence : Freeware (Use only for personal or nonprofit.)
+------------------------------------------------------------------------------
+
+[Special Thanks]
+ To
+ Fab51 [ ita ] (http://fab51.com/)
+ CCPUID [ Cappuccino ] (http://www.cafe-au-lait.info/)
+ CPU-Z [ Franck Delattre ] (http://www.cpuid.com/)
+ SysID [ Morf ] (http://home20.inet.tele.dk/sysid/)
+ WCPUID [ H.Oda! ] (http://www.h-oda.com/)
+ CPUMSR [ Petr Koc ] (http://www.cpuheat.wz.cz/)
+
+[Library]
+ PCI Debug Library for Win32
+ kashiwano masahiro (http://www.otto.to/~kasiwano/)
+ Customized by hiyohiyo
+
+[ Reference ]
+ sandpile.org (http://sandpile.org/)
+ Linux PCI ID's Project (http://pciids.sf.net/)
+ PCIDatabase.com (http://www.pcidatabase.com/)
+ The BalusC Server (http://balusc.xs4all.nl/)
+ Wikipedia (http://en.wikipedia.org/wiki/Main_Page)

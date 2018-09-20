@@ -1,0 +1,9 @@
+////////////////////////////////////////////////////////
+//  pcidebug.dll
+//                        Aug 20 1999 kashiwano masahiro
+//
+////////////////////////////////////////////////////////
+
+
+BOOL LoadDriver(char *filename, char *drivername);
+BOOL UnloadDriver(char *drivername);
