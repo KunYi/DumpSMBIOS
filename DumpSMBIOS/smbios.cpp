@@ -412,8 +412,8 @@ void SMBIOS::initialization(void)
 
 	if ((0 == needBufferSize) || (nTableLength > needBufferSize))
 	{
-		getWmiSmbios(&pBuff, &nTableLength);
-		tableStart = pBuff;
+		if (getWmiSmbios(&pBuff, &nTableLength))
+			tableStart = pBuff;
 	}
 
 	if (tableStart)
