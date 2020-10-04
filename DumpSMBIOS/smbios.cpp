@@ -143,7 +143,7 @@ bool SMBIOS::ProcSysInfo(SMBIOS* T, void* p)
 	T->m_wszSysManufactor = new WCHAR[nManufactor + 1];
 	T->m_wszSysProductName = new WCHAR[nProductName + 1];
 	T->m_wszSysVersion = new WCHAR[nVersion + 1];
-	T->m_wszSysSerialNumber = new WCHAR[nSerialNumber];
+	T->m_wszSysSerialNumber = new WCHAR[nSerialNumber + 1];
 
 	if (T->m_wszSysManufactor)
 	{
@@ -216,37 +216,37 @@ bool SMBIOS::ProcBoardInfo(SMBIOS* T, void* p)
 	if (T->m_wszBoardManufactor)
 	{
 		::SecureZeroMemory(T->m_wszBoardManufactor, sizeof(WCHAR)*(nManufactor + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, Manufactor, nManufactor, T->m_wszBoardManufactor, nManufactor + 1);
+		::MultiByteToWideChar(CP_ACP, NULL, Manufactor, nManufactor, T->m_wszBoardManufactor, nManufactor);
 	}
 	if (T->m_wszBoardProductName)
 	{
 		::SecureZeroMemory(T->m_wszBoardProductName, sizeof(WCHAR)*(nProductName + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, ProductName, nProductName, T->m_wszBoardProductName, nProductName + 1);
+		::MultiByteToWideChar(CP_ACP, NULL, ProductName, nProductName, T->m_wszBoardProductName, nProductName);
 	}
 	if (T->m_wszBoardVersion)
 	{
 		::SecureZeroMemory(T->m_wszBoardVersion, sizeof(WCHAR)*(nVersion + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, Version, nVersion, T->m_wszBoardVersion, nVersion + 1);
+		::MultiByteToWideChar(CP_ACP, NULL, Version, nVersion, T->m_wszBoardVersion, nVersion);
 	}
 	if (T->m_wszBoardSerialNumber)
 	{
 		::SecureZeroMemory(T->m_wszBoardSerialNumber, sizeof(WCHAR)*(nSerialNumber + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, SerialNumber, nSerialNumber, T->m_wszBoardSerialNumber, nSerialNumber + 1);
+		::MultiByteToWideChar(CP_ACP, NULL, SerialNumber, nSerialNumber, T->m_wszBoardSerialNumber, nSerialNumber);
 	}
 	if (T->m_wszBoardAssetTag)
 	{
 		::SecureZeroMemory(T->m_wszBoardAssetTag, sizeof(WCHAR)*(nAssetTag + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, AssetTag, nAssetTag, T->m_wszBoardAssetTag, nAssetTag + 1);
+		::MultiByteToWideChar(CP_ACP, NULL, AssetTag, nAssetTag, T->m_wszBoardAssetTag, nAssetTag);
 	}
 	if (pBoard->Header.Length > 0x08)
 	{
 		const char* Location = LocateStringA(str, pBoard->LocationInChassis);
-		const size_t nLocation = strlen(Location);
+		const int nLocation = (int) strlen(Location);
 		T->m_wszBoardLocation = new WCHAR[nLocation + 1];
-		if (T->m_wszBoardAssetTag)
+		if (T->m_wszBoardLocation)
 		{
-			::SecureZeroMemory(T->m_wszBoardAssetTag, sizeof(WCHAR)*(nAssetTag + 1));
-			::MultiByteToWideChar(CP_ACP, NULL, AssetTag, nAssetTag, T->m_wszBoardAssetTag, nAssetTag + 1);
+			::SecureZeroMemory(T->m_wszBoardLocation, sizeof(WCHAR)*(nLocation + 1));
+			::MultiByteToWideChar(CP_ACP, NULL, Location, nLocation, T->m_wszBoardLocation, nLocation);
 		}
 	}
 	return true;
@@ -291,7 +291,10 @@ void SMBIOS::ParseSMBIOSStruct(void* Addr, UINT Len)
 			break; // last avaiable table
 		DispatchStructType((void*)p);
 		LPBYTE nt = p + pHeader->Length; // point to struct end
-		while (0 != (*nt | *(nt + 1))) nt++; // skip string area
+		while (0 != (*nt | *(nt + 1))) {
+		nt++;  // skip string area
+			if (nt >= lastAddress) break; // avoid infinite loop when got bad structure of SMBIOS
+		}
 		nt += 2;
 		if (nt >= lastAddress)
 			break;
@@ -367,7 +370,8 @@ const SMBIOS& SMBIOS::getInstance(void)
 			pInstance->initialization();
 		}
 	}
-	return *pInstance;
+	const SMBIOS& ref = (*pInstance);
+	return ref;
 }
 
 void SMBIOS::initialization(void)
@@ -378,31 +382,37 @@ void SMBIOS::initialization(void)
 
 	PBYTE tableStart = nullptr;
 	UINT nTableLength = 0;
+	DWORD needBufferSize = 0;
 
 	if (pGetSystemFirmwareTable)
 	{
-		DWORD needBufferSize = 0;
-		
+		const DWORD Signature = 'RSMB';
+		#if 0
 		DWORD Signature = 'R';
 		Signature = (Signature << 8) + 'S';
 		Signature = (Signature << 8) + 'M';
 		Signature = (Signature << 8) + 'B';
+		#endif
 
 		needBufferSize = pGetSystemFirmwareTable(Signature, 0, NULL, 0);
 		pBuff = new BYTE[needBufferSize];
 
-		pGetSystemFirmwareTable(Signature, 0, pBuff, needBufferSize);
+		needBufferSize = pGetSystemFirmwareTable(Signature, 0,
+			pBuff,needBufferSize);
+		if (needBufferSize > 0) {
+			const PRawSMBIOSData pDMIData = (PRawSMBIOSData)pBuff;
+			MajorVersion = pDMIData->MajorVersion;
+			MinorVersion = pDMIData->MinorVersion;
+			DMIRevision = pDMIData->DmiRevision;
 
-		const PRawSMBIOSData pDMIData = (PRawSMBIOSData)pBuff;
-		MajorVersion = pDMIData->MajorVersion;
-		MinorVersion = pDMIData->MinorVersion;
-		DMIRevision = pDMIData->DmiRevision;
-
-		tableStart = (PBYTE)&(pDMIData->SMBIOSTableData);
-		nTableLength = pDMIData->Length;
+			tableStart = (PBYTE) & (pDMIData->SMBIOSTableData);
+			nTableLength = pDMIData->Length;
+		}
 	}
-	else if (getWmiSmbios(&pBuff, &nTableLength))
+
+	if ((0 == needBufferSize) || (nTableLength > needBufferSize))
 	{
+		getWmiSmbios(&pBuff, &nTableLength);
 		tableStart = pBuff;
 	}
 
@@ -429,80 +439,84 @@ bool SMBIOS::getWmiSmbios(BYTE ** data, UINT * length)
 
 	result = CoInitialize(NULL);
 
-	if (SUCCEEDED(result)) 
-	{
-		result = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
+	if (!SUCCEEDED(result))
+		return false;
 
-		if (SUCCEEDED(result)) 
-		{
-			result = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID *)&pLoc);
-
-			if (SUCCEEDED(result)) 
-			{
-				result = pLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pSvc);
-
-				if (SUCCEEDED(result)) 
-				{
-					result = CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
-
-					if (SUCCEEDED(result)) 
-					{
-						result = pLoc->ConnectServer(_bstr_t(L"ROOT\\WMI"), NULL, NULL, 0, NULL, 0, 0, &pSvcSmbios);
-
-						if (SUCCEEDED(result)) 
-						{
-							result = CoSetProxyBlanket(pSvcSmbios, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
-							
-							if (SUCCEEDED(result)) 
-							{
-								result = pSvcSmbios->CreateInstanceEnum(L"MSSMBios_RawSMBiosTables", 0, NULL, &pEnumerator);
-
-								if (SUCCEEDED(result)) 
-								{
-									while (pEnumerator) 
-									{
-										result = pEnumerator->Next(WBEM_INFINITE, 1, &pInstance, &uReturn);
-
-										if (!uReturn) {
-											break;
-										}
-
-										VariantInit(&vtProp);
-
-										result = pInstance->Get(bstr_t("SMBiosData"), 0, &vtProp, &pvtType, NULL);
-
-										if (SUCCEEDED(result)) 
-										{
-											SAFEARRAY * array = V_ARRAY(&vtProp);
-
-											*length = array->rgsabound[0].cElements;
-											*data = new BYTE[*length];
-											memcpy(*data, (BYTE*)array->pvData, *length);
-											VariantClear(&vtProp);
-										}
-									}
-
-									pEnumerator->Release();
-
-									if (pInstance) 
-										pInstance->Release();
-								}
-							}
-
-							pSvcSmbios->Release();
-						}
-					}
-
-					pSvc->Release();
-				}
-
-				pLoc->Release();
-			}
-		}
-
+	result = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
+	if (!SUCCEEDED(result)) {
 		CoUninitialize();
+		return false;
 	}
 
+	result = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID *)&pLoc);
+	if (!SUCCEEDED(result)) {
+		CoUninitialize();
+		return false;
+	}
+
+	result = pLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pSvc);
+	if (!SUCCEEDED(result)) {
+		pLoc->Release();
+		CoUninitialize();
+		return false;
+	}
+
+	result = CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+	if (!SUCCEEDED(result)) {
+		pLoc->Release();
+		CoUninitialize();
+		return false;
+	}
+
+	result = pLoc->ConnectServer(_bstr_t(L"ROOT\\WMI"), NULL, NULL, 0, NULL, 0, 0, &pSvcSmbios);
+	if (!SUCCEEDED(result)) {
+		pLoc->Release();
+		CoUninitialize();
+		return false;
+	}
+
+	result = CoSetProxyBlanket(pSvcSmbios, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+	if (!SUCCEEDED(result)) {
+		pSvcSmbios->Release();
+		pSvc->Release();
+		pLoc->Release();
+		CoUninitialize();
+	}
+	
+	result = pSvcSmbios->CreateInstanceEnum(L"MSSMBios_RawSMBiosTables", 0, NULL, &pEnumerator);
+	if (SUCCEEDED(result)) {
+		while (pEnumerator) {
+			result = pEnumerator->Next(WBEM_INFINITE, 1, &pInstance, &uReturn);
+
+			if (!uReturn) {
+				break;
+			}
+
+			VariantInit(&vtProp);
+
+			result = pInstance->Get(bstr_t("SMBiosData"), 0, &vtProp, &pvtType, NULL);
+			if (SUCCEEDED(result)) {
+				SAFEARRAY * array = V_ARRAY(&vtProp);
+
+				*length = array->rgsabound[0].cElements;
+				*data = new BYTE[*length];
+				memcpy(*data, (BYTE*)array->pvData, *length);
+				VariantClear(&vtProp);
+			}
+		}
+		pEnumerator->Release();
+		if (pInstance)
+			pInstance->Release();
+	}
+
+	if (pSvcSmbios)
+		pSvcSmbios->Release();
+	if (pSvc)
+		pSvc->Release();
+	if (pLoc)
+		pLoc->Release();
+
+	CoUninitialize();
 	return true;
 }
 
