@@ -36,26 +36,26 @@ public:
 	static const SMBIOS& getInstance(void);
 public:
 	// Type 0
-	const PWCHAR BIOSVendor(void) { return m_wszBIOSVendor; }
-	const PWCHAR BIOSVersion(void) { return m_wszBIOSVersion; }
-	const PWCHAR BIOSReleaseDate(void) { return m_wszBIOSReleaseDate; }
-	const DWORD  BIOSSysVersion(void) { return m_BIOSSysVersion; }
-	const DWORD  BIOSECVersion(void) { return m_BIOSECVersion; }
+	const PWCHAR BIOSVendor(void) const { return m_wszBIOSVendor; }
+	const PWCHAR BIOSVersion(void) const { return m_wszBIOSVersion; }
+	const PWCHAR BIOSReleaseDate(void) const { return m_wszBIOSReleaseDate; }
+	const DWORD  BIOSSysVersion(void) const { return m_BIOSSysVersion; }
+	const DWORD  BIOSECVersion(void) const { return m_BIOSECVersion; }
 	// Type 1
-	const PWCHAR SysManufactor(void) { return m_wszSysManufactor; }
-	const PWCHAR SysProductName(void) { return m_wszSysProductName; }
-	const PWCHAR SysVersion(void) { return m_wszSysVersion; }
-	const PWCHAR SysSerialNumber(void) { return m_wszSysSerialNumber; }
-	const UUID&  SysUUID(void) { return m_SysUUID; }
-	const PWCHAR SysSKU(void) { return m_wszSysSKU; }
-	const PWCHAR SysFamily(void) { return m_wszSysFamily; }
+	const PWCHAR SysManufactor(void) const { return m_wszSysManufactor; }
+	const PWCHAR SysProductName(void) const { return m_wszSysProductName; }
+	const PWCHAR SysVersion(void) const { return m_wszSysVersion; }
+	const PWCHAR SysSerialNumber(void) const { return m_wszSysSerialNumber; }
+	const UUID&  SysUUID(void) const { return m_SysUUID; }
+	const PWCHAR SysSKU(void) const { return m_wszSysSKU; }
+	const PWCHAR SysFamily(void) const { return m_wszSysFamily; }
 	// Type 2
-	const PWCHAR BoardManufactor(void) { return m_wszBoardManufactor; }
-	const PWCHAR BoardProductName(void) { return m_wszBoardProductName; }
-	const PWCHAR BoardVersion(void) { return m_wszBoardVersion; }
-	const PWCHAR BoardSerialNumber(void) { return m_wszBoardSerialNumber; }
-	const PWCHAR BoardAssetTag(void) { return m_wszBoardAssetTag; }
-	const PWCHAR BoardLocation(void) { return m_wszBoardLocation; }
+	const PWCHAR BoardManufactor(void) const { return m_wszBoardManufactor; }
+	const PWCHAR BoardProductName(void) const { return m_wszBoardProductName; }
+	const PWCHAR BoardVersion(void) const { return m_wszBoardVersion; }
+	const PWCHAR BoardSerialNumber(void) const { return m_wszBoardSerialNumber; }
+	const PWCHAR BoardAssetTag(void) const { return m_wszBoardAssetTag; }
+	const PWCHAR BoardLocation(void) const { return m_wszBoardLocation; }
 private:
 	// helper function
 	static bool ProcBIOSInfo(SMBIOS* T, void* p);
