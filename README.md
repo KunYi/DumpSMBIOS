@@ -7,6 +7,6 @@ On Windows Vista and later it uses [GetSystemFirmwareTable() API](http://msdn.mi
 
 provide a access memory method to from F Segment to read table, only for study
 
-Build Enviroments 
+Build Environments 
 ===
 Visual Studio 2019 with vc142
