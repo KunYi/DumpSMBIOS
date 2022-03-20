@@ -376,9 +376,9 @@ bool ProcOEMString(void* p)
 	_tprintf(TEXT("%s\n"), getHeaderString(11));
 	int OemStringCount = *(((char*)p) + 4);
 	for(int i = 1; i <= OemStringCount; i++) {
-		_tprintf(TEXT("OEM String%d: %s\n"), LocateString(str, i));
+		_tprintf(TEXT("OEM String%d: %s\n"), i, LocateString(str, i));
 	}
-	
+
 	return true;
 }
 
