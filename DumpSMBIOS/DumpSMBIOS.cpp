@@ -373,8 +373,14 @@ bool ProcOEMString(void* p)
 {
 	PSMBIOSHEADER pHdr = (PSMBIOSHEADER)p;
 	const char *str = toPointString(p);
+	const int OemStringCount = *((char*)p + 4);
+
 	_tprintf(TEXT("%s\n"), getHeaderString(11));
-	_tprintf(TEXT("OEM String: %s\n"), LocateString(str, *(((char*)p) + 4)));
+	_tprintf(TEXT("String Count: %d\n"), OemStringCount);
+	for(int i = 1; i <= OemStringCount; i++)
+	{
+		_tprintf(TEXT("OEM String%d: %s\n"), i, LocateString(str, i));
+	}
 
 	return true;
 }
