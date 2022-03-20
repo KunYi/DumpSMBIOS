@@ -3,7 +3,7 @@
 
 #include "stdafx.h"
 
-#pragma pack(push) 
+#pragma pack(push)
 #pragma pack(1)
 typedef struct _RawSMBIOSData
 {
@@ -128,6 +128,11 @@ typedef struct _TYPE_7_ {
 	UCHAR	Associativity;
 } CacheInfo, *PCacheInfo;
 
+typedef struct _TYPE_11_ {
+	SMBIOSHEADER Header;
+	UCHAR	Count;
+} OemString, *POemString;
+
 typedef struct _TYPE_17_ {
 	SMBIOSHEADER Header;
 	UINT16	PhysicalArrayHandle;
@@ -166,7 +171,7 @@ typedef struct _TYPE_22_ {
 	UCHAR	DeviceName;
 
 } PortableBattery, *PPortableBattery;
-#pragma pack(pop) 
+#pragma pack(pop)
 
 #ifdef UNICODE
 #define getHeaderString  getHeaderStringW
@@ -181,27 +186,30 @@ const char* getHeaderStringA(const UINT type)
 {
 	static const char* PRT_HEADER[] =
 	{
-		"-=======================================================-",
-		"==========          BIOS information           ==========",
-		"==========         System information          ==========",
-		"==========       Base Board information        ==========",
-		"==========    System Enclosure information     ==========",
-		"==========        Processor information        ==========",
-		"==========    Memory Controller information    ==========",
-		"==========      Memory Module information      ==========",
-		"==========           Cache information         ==========",
-		"==========      Port Connector Information     ==========",
-		"==========            System Slots             ==========",
-		"==========     On Board Devices Information    ==========",
-		"==========             OEM String              ==========",
-		"==========     System Configuration Options    ==========",
-		"==========      BIOS Language Information      ==========",
-		"==========         Group Associations          ==========",
-		"==========          System Event Log           ==========",
-		"==========        Physical Memory Array        ==========",
-		"==========            Memory Device            ==========",
-		"==========      Memory Error Information       ==========",
-		"==========     Memory Array Mapped Address     ==========",
+		"-=======================================================-", /*   0  */
+		"==========          BIOS information           ==========", /*   1  */
+		"==========         System information          ==========", /*   2  */
+		"==========       Base Board information        ==========", /*   3  */
+		"==========    System Enclosure information     ==========", /*   4  */
+		"==========        Processor information        ==========", /*   5  */
+		"==========    Memory Controller information    ==========", /*   6  */
+		"==========      Memory Module information      ==========", /*   7  */
+		"==========           Cache information         ==========", /*   8  */
+		"==========      Port Connector Information     ==========", /*   9  */
+		"==========            System Slots             ==========", /*  10  */
+		"==========     On Board Devices Information    ==========", /*  11  */
+		"==========             OEM String              ==========", /*  12  */
+		"==========     System Configuration Options    ==========", /*  13  */
+		"==========      BIOS Language Information      ==========", /*  14  */
+		"==========         Group Associations          ==========", /*  15  */
+		"==========          System Event Log           ==========", /*  16  */
+		"==========        Physical Memory Array        ==========", /*  17  */
+		"==========            Memory Device            ==========", /*  18  */
+		"==========      Memory Error Information       ==========", /*  19  */
+		"==========     Memory Array Mapped Address     ==========", /*  20  */
+		"==========    Memory Device Mapped Address     ==========", /*  21  */
+		"==========       Built-in Pointing Device      ==========", /*  22  */
+		"==========          Portable Battery           ==========", /*  23  */
 	};
 
 	if (cstrHEADER == type)
@@ -222,7 +230,7 @@ const wchar_t* getHeaderStringW(const UINT type)
 const char* LocateStringA(const char* str, UINT i)
 {
 	static const char strNull[] = "Null String";
-	
+
 	if (0 == i || 0 == *str) return strNull;
 
 	while (--i)
@@ -371,13 +379,12 @@ bool ProcCacheInfo(void *p)
 
 bool ProcOEMString(void* p)
 {
-	PSMBIOSHEADER pHdr = (PSMBIOSHEADER)p;
+	POemString pOemString = (POemString)p;
 	const char *str = toPointString(p);
-	const int OemStringCount = *((char*)p + 4);
 
 	_tprintf(TEXT("%s\n"), getHeaderString(11));
-	_tprintf(TEXT("String Count: %d\n"), OemStringCount);
-	for(int i = 1; i <= OemStringCount; i++)
+	_tprintf(TEXT("Count: %d\n"), pOemString->Count);
+	for(int i = 1; i <= pOemString->Count; i++)
 	{
 		_tprintf(TEXT("OEM String%d: %s\n"), i, LocateString(str, i));
 	}
@@ -427,7 +434,7 @@ bool ProcPortableBattery(void* p)
 	PPortableBattery pPB = (PPortableBattery)p;
 	const char *str = toPointString(p);
 
-	_tprintf(TEXT("============= Portable Battery =============\n"));
+	_tprintf(TEXT("%s\n"), getHeaderString(22));
 	_tprintf(TEXT("Length: 0x%X\n"), pPB->Header.Length);
 	_tprintf(TEXT("Location: %s\n"), LocateString(str, pPB->Location));
 	_tprintf(TEXT("Manufacturer: %s\n"), LocateString(str, pPB->Manufacturer));
@@ -537,4 +544,3 @@ int _tmain(int argc, _TCHAR* argv[])
 	wprintf(L"System Product Name: %s\r\n", SmBios.SysProductName());
 	return 0;
 }
-
