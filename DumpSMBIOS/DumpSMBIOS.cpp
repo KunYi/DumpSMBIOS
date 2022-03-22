@@ -162,6 +162,13 @@ typedef struct _TYPE_19_ {
 	UCHAR	PartitionWidth;
 } MemoryArrayMappedAddress, *PMemoryArrayMappedAddress;
 
+typedef struct _TYPE_21_ {
+	SMBIOSHEADER Header;
+	UCHAR Type;
+	UCHAR Interface;
+	UCHAR NumOfButton;
+} BuiltinPointDevice, *PBuiltinPointDevice;
+
 typedef struct _TYPE_22_ {
 	SMBIOSHEADER Header;
 	UCHAR	Location;
@@ -169,7 +176,16 @@ typedef struct _TYPE_22_ {
 	UCHAR	Date;
 	UCHAR	SN;
 	UCHAR	DeviceName;
-
+	UCHAR   Chemistry;
+	UINT16  DesignCapacity;
+	UINT16  DesignVoltage;
+	UCHAR   SBDSVersionNumber;
+	UCHAR   MaximumErrorInBatteryData;
+	UINT16  SBDSSerialNumber;
+	UINT16	SBDSManufactureDate;
+	UCHAR   SBDSDeviceChemistry;
+	UCHAR   DesignCapacityMultiplie;
+	UINT32  OEM;
 } PortableBattery, *PPortableBattery;
 #pragma pack(pop)
 
@@ -223,8 +239,10 @@ const wchar_t* getHeaderStringW(const UINT type)
 	static wchar_t buff[2048];
 	const char* pStr = getHeaderStringA(type);
 	SecureZeroMemory(buff, sizeof(buff));
-	MultiByteToWideChar(CP_OEMCP, 0, pStr, (int) strlen(pStr), buff, sizeof(buff));
-	return buff;
+	const int convSize = MultiByteToWideChar(CP_OEMCP, 0, pStr, (int) strlen(pStr), buff, sizeof(buff) / 2);
+	if (convSize > 0)
+		return buff;
+	return NULL;
 }
 
 const char* LocateStringA(const char* str, UINT i)
@@ -245,8 +263,10 @@ const wchar_t* LocateStringW(const char* str, UINT i)
 	static wchar_t buff[2048];
 	const char *pStr = LocateStringA(str, i);
 	SecureZeroMemory(buff, sizeof(buff));
-	MultiByteToWideChar(CP_OEMCP, 0, pStr, (int) strlen(pStr), buff, sizeof(buff));
-	return buff;
+	const int convSize = MultiByteToWideChar(CP_OEMCP, 0, pStr, (int) strlen(pStr), buff, sizeof(buff) / 2);
+	if (convSize > 0)
+		return buff;
+	return NULL;
 }
 
 const char* toPointString(void* p)
@@ -429,6 +449,88 @@ bool ProcMemoryArrayMappedAddress(void*	p)
 	return true;
 }
 
+static const TCHAR* getBuiltinPointDeviceTypeString(const UCHAR type)
+{
+	const TCHAR* typeString[10] = {
+		TEXT("Unsupport Type"),
+		TEXT("Other"),
+		TEXT("Unknown"),
+		TEXT("Mouse"),
+		TEXT("Track Ball"),
+		TEXT("Track Point"),
+		TEXT("Glide Point"),
+		TEXT("Touch Pad"),
+		TEXT("Touch Screen"),
+		TEXT("Optical Sensor"),
+	};
+
+	if ((type >= 1) && (type <= 9))
+		return typeString[type];
+
+	return typeString[0];
+}
+
+static const TCHAR* getBuiltinPointDeviceInterfaceString(const UCHAR Interface)
+{
+	const TCHAR* interfaceString[12] = {
+		TEXT("Unsupport Interface"),
+		TEXT("Other"),
+		TEXT("Unknown"),
+		TEXT("Serial"),
+		TEXT("PS/2"),
+		TEXT("Infrared"),
+		TEXT("HP-HIL"),
+		TEXT("Bus mouse"),
+		TEXT("Apple Desktop Bus"),
+		TEXT("Bus mouse DB-9"),
+		TEXT("Bus mouse micro-DIN"),
+		TEXT("USB"),
+	};
+
+	if ((Interface >= 1) && Interface <= 8)
+		return interfaceString[Interface];
+	else if ((Interface >= 0xA0) && (Interface <= 0xA2))
+		return interfaceString[Interface - 0xA0 + 9];
+
+	return interfaceString[0];
+}
+
+bool ProcBuiltinPointDevice(void* p)
+{
+	PBuiltinPointDevice pBPD = (PBuiltinPointDevice)p;
+
+	_tprintf(TEXT("%s\n"), getHeaderString(21));
+	_tprintf(TEXT("Length: 0x%X\n"), pBPD->Header.Length);
+	_tprintf(TEXT("Type: %s(0x%X)\n"),
+		getBuiltinPointDeviceTypeString(pBPD->Type), pBPD->Type);
+	_tprintf(TEXT("Interface: %s(0x%X)\n"),
+		getBuiltinPointDeviceInterfaceString(pBPD->Interface), pBPD->Interface);
+	_tprintf(TEXT("Number of Button: %d\n"), pBPD->NumOfButton);
+	return true;
+}
+
+static const TCHAR* getBatteryChemistry(const UCHAR chemistry)
+{
+	const TCHAR* typeString[9] = {
+		TEXT("Unsupport type"),
+		TEXT("Other"),
+		TEXT("Unknown"),
+		TEXT("Lead Acid"),
+		TEXT("Nickel Cadmium"),
+		TEXT("Nickel metal hydride"),
+		TEXT("Lithium-ion"),
+		TEXT("Zinc air"),
+		TEXT("Lithium Polyme")
+	};
+
+	if ((chemistry >= 1) && (chemistry <= 8))
+	{
+		return typeString[chemistry];
+	}
+
+	return typeString[0];
+}
+
 bool ProcPortableBattery(void* p)
 {
 	PPortableBattery pPB = (PPortableBattery)p;
@@ -438,9 +540,34 @@ bool ProcPortableBattery(void* p)
 	_tprintf(TEXT("Length: 0x%X\n"), pPB->Header.Length);
 	_tprintf(TEXT("Location: %s\n"), LocateString(str, pPB->Location));
 	_tprintf(TEXT("Manufacturer: %s\n"), LocateString(str, pPB->Manufacturer));
-	_tprintf(TEXT("Manufacturer Date: %s\n"), LocateString(str, pPB->Date));
-	_tprintf(TEXT("Serial Number: %s\n"), LocateString(str, pPB->SN));
 
+	if (pPB->Date != 0)
+		_tprintf(TEXT("Manufacturer Date: %s\n"), LocateString(str, pPB->Date));
+	else {
+		// TODO:
+	}
+
+	if (pPB->SN != 0)
+		_tprintf(TEXT("Serial Number: %s\n"), LocateString(str, pPB->SN));
+	else {
+		// TODO:
+	}
+
+	_tprintf(TEXT("Device Name: %s\n"), LocateString(str, pPB->DeviceName));
+
+	if (pPB->Chemistry != 2) {
+		_tprintf(TEXT("Chemistry: %s(0x%X)\n"), getBatteryChemistry(pPB->Chemistry), pPB->Chemistry);
+	}
+	else {
+		_tprintf(TEXT("Chemistry: %s\n"), LocateString(str, pPB->SBDSDeviceChemistry));
+	}
+	_tprintf(TEXT("Design Voltage: %dmV\n"), pPB->DesignVoltage);
+	if (pPB->DesignCapacity == 0) {
+		_tprintf(TEXT("Design Capacity: Unkonw\n"));
+	}
+	else {
+		_tprintf(TEXT("Design Capacity: %dmWH\n"), ((pPB->DesignCapacity * pPB->DesignCapacityMultiplie)));
+	}
 	return true;
 }
 
@@ -463,6 +590,7 @@ bool DispatchStructType(PSMBIOSHEADER hdr)
 		{ 11, ProcOEMString },
 		{ 17, ProcMemoryDevice },
 		{ 19, ProcMemoryArrayMappedAddress },
+		{ 21, ProcBuiltinPointDevice },
 		{ 22, ProcPortableBattery },
 
 	};
