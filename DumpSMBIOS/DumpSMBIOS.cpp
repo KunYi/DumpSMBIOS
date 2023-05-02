@@ -5,6 +5,9 @@
 
 #pragma pack(push)
 #pragma pack(1)
+
+#define WAKEUP_TYPE_COUNT   9
+#define BOARD_TYPE_COUNT    13
 typedef struct _RawSMBIOSData
 {
 	BYTE	Used20CallingMethod;
@@ -96,7 +99,19 @@ typedef struct _TYPE_4_ {
 	UINT16	ExtClock;
 	UINT16	MaxSpeed;
 	UINT16	CurrentSpeed;
-	// Todo, Here
+	UCHAR   Status;
+	UCHAR   ProcessorUpgrade;
+	UINT16  L1CacheHandle;
+	UINT16  L2CacheHandle;
+	UINT16  L3CacheHandle;
+	UCHAR   SerialNumber;
+	UCHAR   AssertTag;
+	UCHAR   PartNumber;
+	UCHAR   CoreCount;
+	UCHAR   CoreEnabled;
+	UCHAR   ThreadCount;
+	UINT16  ProcessorCharacteristics;
+	UINT16  ProcessorFamily2;
 
 } ProcessorInfo, *PProcessorInfo;
 
@@ -313,6 +328,17 @@ bool ProcSysInfo(void* p)
 			pSystem->UUID[12], pSystem->UUID[13], pSystem->UUID[14], pSystem->UUID[15]);
 	}
 
+	// process wake-up type, for spec2.1 or later
+	if (pSystem->WakeUpType >= 0 && pSystem->WakeUpType < WAKEUP_TYPE_COUNT) 
+	{	
+		const TCHAR* WakeupTypeStrings[] =
+		{
+			TEXT("Reserved"), TEXT("Other"), TEXT("Unknown"), TEXT("APM Timer"), TEXT("Modem Ring"),
+			TEXT("LAN Remote"),TEXT("Power Switch") , TEXT("PCI PME#"), TEXT("AC Power Restored")
+		};
+		_tprintf(TEXT("Wake-up Type: %s\n"), WakeupTypeStrings[pSystem->WakeUpType]);
+	}
+
 	if (pSystem->Header.Length > 0x19)
 	{
 		// fileds for spec. 2.4
@@ -326,6 +352,7 @@ bool ProcBoardInfo(void* p)
 {
 	PBoardInfo pBoard = (PBoardInfo)p;
 	const char *str = toPointString(p);
+	const char HandleCount = pBoard->NumObjHandle;
 
 	_tprintf(TEXT("%s\n"), getHeaderString(2));
 	_tprintf(TEXT("Length: 0x%X\n"), pBoard->Header.Length);
@@ -334,10 +361,38 @@ bool ProcBoardInfo(void* p)
 	_tprintf(TEXT("Version: %s\n"), LocateString(str, pBoard->Version));
 	_tprintf(TEXT("Serial Number: %s\n"), LocateString(str, pBoard->SN));
 	_tprintf(TEXT("Asset Tag Number: %s\n"), LocateString(str, pBoard->AssetTag));
+	_tprintf(TEXT("Feature Flag: 0x%x\n"), pBoard->FeatureFlags);
+
 	if (pBoard->Header.Length > 0x08)
 	{
 		_tprintf(TEXT("Location in Chassis: %s\n"), LocateString(str, pBoard->LocationInChassis));
 	}
+
+	if (pBoard->Header.Length > 0x0B)
+	{
+		const TCHAR* BoardType[] =
+		{
+			TEXT("Unknown"), TEXT("Other"), TEXT("Server Blade"), TEXT("Connectivity Switch"), TEXT("System Management Module"),
+			TEXT("Processor Module"), TEXT("I/O Module"), TEXT("Memory Module"), TEXT("Daughter board"), TEXT("Motherboard (includes processor, memory, and I/O)"),
+			TEXT("Processor/Memory Module"), TEXT("Processor/IO Module"), TEXT("Interconnect board"),
+		};
+		if (pBoard->Type >= 0 && pBoard->Type < BOARD_TYPE_COUNT) 
+		{
+			_tprintf(TEXT("Board Type: %s\n"), BoardType[pBoard->Type]);
+		}
+	}
+
+	if (pBoard->Header.Length > 0x0D) 
+	{
+		_tprintf(TEXT("Number of Contained Object Handles: %d\n"), HandleCount);
+	}
+	_tprintf(TEXT("Object Handles: \n"));
+
+	for (int i = 0; i < HandleCount; i++) 
+	{
+		_tprintf(TEXT("%02x "), pBoard->pObjHandle[i]);
+	}
+	_tprintf(TEXT("\n"));
 
 	return true;
 }
@@ -360,15 +415,24 @@ bool ProcProcessorInfo(void* p)
 {
 	PProcessorInfo	pProcessor = (PProcessorInfo)p;
 	const char *str = toPointString(p);
+	const TCHAR *ProcessTypeStrings[] = 
+	{
+		TEXT("Other"), TEXT("Unknown"), TEXT("Central Processor"),
+		TEXT("Math Processor"), TEXT("DSP Processor"), TEXT("Video Processor"),
+	};
 
 	_tprintf(TEXT("%s\n"), getHeaderString(4));
 	_tprintf(TEXT("Length: 0x%X\n"), pProcessor->Header.Length);
 	_tprintf(TEXT("Socket Designation: %s\n"), LocateString(str, pProcessor->SocketDesignation));
+	_tprintf(TEXT("Processor Type: %s\n"), ProcessTypeStrings[pProcessor->Type]);
+	_tprintf(TEXT("Processor Family: \n"));
+	_tprintf(TEXT("Processor ID: \n"));
 	_tprintf(TEXT("Processor Manufacturer: %s\n"), LocateString(str, pProcessor->Manufacturer));
 	_tprintf(TEXT("Processor Version: %s\n"), LocateString(str, pProcessor->Version));
 	_tprintf(TEXT("External Clock: %dMHz, 0MHz is unknown clock\n"), pProcessor->ExtClock);
 	_tprintf(TEXT("Max Speed: %dMHz\n"), pProcessor->MaxSpeed);
 	_tprintf(TEXT("Current Speed: %dMHz\n"), pProcessor->CurrentSpeed);
+	_tprintf(TEXT("Status: 0x%02x\n"), pProcessor->Status);
 	return true;
 }
 
@@ -561,13 +625,22 @@ bool ProcPortableBattery(void* p)
 	else {
 		_tprintf(TEXT("Chemistry: %s\n"), LocateString(str, pPB->SBDSDeviceChemistry));
 	}
-	_tprintf(TEXT("Design Voltage: %dmV\n"), pPB->DesignVoltage);
 	if (pPB->DesignCapacity == 0) {
 		_tprintf(TEXT("Design Capacity: Unkonw\n"));
 	}
 	else {
 		_tprintf(TEXT("Design Capacity: %dmWH\n"), ((pPB->DesignCapacity * pPB->DesignCapacityMultiplie)));
 	}
+	_tprintf(TEXT("Design Voltage: %dmV\n"), pPB->DesignVoltage);
+	_tprintf(TEXT("SBDS Version Number: %s\n"), LocateString(str, pPB->SBDSVersionNumber));
+	_tprintf(TEXT("Maximum Error in Battery Data: %d\n"), pPB->MaximumErrorInBatteryData);
+	_tprintf(TEXT("SBDS Serial Number: %d\n"), pPB->SBDSSerialNumber);
+	_tprintf(TEXT("SBDS Manufacture Date: \n")); // to be done
+	_tprintf(TEXT("SBDS Device Chemistry: %s\n"), LocateString(str, pPB->SBDSDeviceChemistry));
+	_tprintf(TEXT("Design Capacity Multiplier: 0x%02x\n"), pPB->DesignCapacityMultiplie);
+	_tprintf(TEXT("OEM-specify: \n")); // to be done
+
+	
 	return true;
 }
 
