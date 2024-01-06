@@ -329,8 +329,8 @@ bool ProcSysInfo(void* p)
 	}
 
 	// process wake-up type, for spec2.1 or later
-	if (pSystem->WakeUpType >= 0 && pSystem->WakeUpType < WAKEUP_TYPE_COUNT) 
-	{	
+	if (pSystem->WakeUpType >= 0 && pSystem->WakeUpType < WAKEUP_TYPE_COUNT)
+	{
 		const TCHAR* WakeupTypeStrings[] =
 		{
 			TEXT("Reserved"), TEXT("Other"), TEXT("Unknown"), TEXT("APM Timer"), TEXT("Modem Ring"),
@@ -376,19 +376,19 @@ bool ProcBoardInfo(void* p)
 			TEXT("Processor Module"), TEXT("I/O Module"), TEXT("Memory Module"), TEXT("Daughter board"), TEXT("Motherboard (includes processor, memory, and I/O)"),
 			TEXT("Processor/Memory Module"), TEXT("Processor/IO Module"), TEXT("Interconnect board"),
 		};
-		if (pBoard->Type >= 0 && pBoard->Type < BOARD_TYPE_COUNT) 
+		if (pBoard->Type >= 0 && pBoard->Type < BOARD_TYPE_COUNT)
 		{
 			_tprintf(TEXT("Board Type: %s\n"), BoardType[pBoard->Type]);
 		}
 	}
 
-	if (pBoard->Header.Length > 0x0D) 
+	if (pBoard->Header.Length > 0x0D)
 	{
 		_tprintf(TEXT("Number of Contained Object Handles: %d\n"), HandleCount);
 	}
 	_tprintf(TEXT("Object Handles: \n"));
 
-	for (int i = 0; i < HandleCount; i++) 
+	for (int i = 0; i < HandleCount; i++)
 	{
 		_tprintf(TEXT("%02x "), pBoard->pObjHandle[i]);
 	}
@@ -415,9 +415,9 @@ bool ProcProcessorInfo(void* p)
 {
 	PProcessorInfo	pProcessor = (PProcessorInfo)p;
 	const char *str = toPointString(p);
-	const TCHAR *ProcessTypeStrings[] = 
+	const TCHAR *ProcessTypeStrings[] =
 	{
-		TEXT("Other"), TEXT("Unknown"), TEXT("Central Processor"),
+		TEXT("?"), TEXT("Other"), TEXT("Unknown"), TEXT("Central Processor"),
 		TEXT("Math Processor"), TEXT("DSP Processor"), TEXT("Video Processor"),
 	};
 
@@ -640,7 +640,7 @@ bool ProcPortableBattery(void* p)
 	_tprintf(TEXT("Design Capacity Multiplier: 0x%02x\n"), pPB->DesignCapacityMultiplie);
 	_tprintf(TEXT("OEM-specify: \n")); // to be done
 
-	
+
 	return true;
 }
 
