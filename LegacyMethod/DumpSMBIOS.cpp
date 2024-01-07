@@ -296,8 +296,8 @@ bool ProcSysInfo(void* p)
 	if (pSystem->Header.Length > 0x08)
 	{
 		printf("UUID: %02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X\n",
-		pSystem->UUID[0], pSystem->UUID[1], pSystem->UUID[2], pSystem->UUID[3],
-		pSystem->UUID[4], pSystem->UUID[5], pSystem->UUID[6], pSystem->UUID[7],
+		pSystem->UUID[3], pSystem->UUID[2], pSystem->UUID[1], pSystem->UUID[0],
+		pSystem->UUID[5], pSystem->UUID[4], pSystem->UUID[7], pSystem->UUID[6],
 		pSystem->UUID[8], pSystem->UUID[9], pSystem->UUID[10], pSystem->UUID[11],
 		pSystem->UUID[12], pSystem->UUID[13], pSystem->UUID[14], pSystem->UUID[15]);
 	}
