@@ -8,7 +8,7 @@
 
 typedef UINT(WINAPI *GET_SYSTEM_FIRMWARE_TABLE) (DWORD, DWORD, PVOID, DWORD);
 
-#pragma pack(push) 
+#pragma pack(push)
 #pragma pack(1)
 typedef struct _RawSMBIOSData
 {
@@ -70,7 +70,7 @@ typedef struct _TYPE_2_ {
 	UINT16	*pObjHandle;
 } BoardInfo, *PBoardInfo;
 
-#pragma pack(pop) 
+#pragma pack(pop)
 
 static const char* LocateStringA(const char* str, UINT i)
 {
@@ -90,35 +90,29 @@ static const char* toPointString(void* p)
 	return (char*)p + ((PSMBIOSHEADER)p)->Length;
 }
 
+static PWCHAR ConvertToWideChar(const char* str)
+{
+	if (!str || !*str) return NULL;
+
+	const int len = (int)strlen(str);
+	PWCHAR result = new WCHAR[len + 1];
+
+	if (result) {
+		::SecureZeroMemory(result, sizeof(WCHAR) * (len + 1));
+		::MultiByteToWideChar(CP_ACP, 0, str, len, result, len + 1);
+	}
+	return result;
+}
+
+
 bool SMBIOS::ProcBIOSInfo(SMBIOS* T, void* p)
 {
 	PBIOSInfo pBIOS = (PBIOSInfo)p;
 	const char* str = toPointString(p);
-	const char* Vendor = LocateStringA(str, pBIOS->Vendor);
-	const char* Version = LocateStringA(str, pBIOS->Version);
-	const char* Date = LocateStringA(str, pBIOS->ReleaseDate);
-	const int nVendor = (int) strlen(Vendor);
-	const int nVersion = (int) strlen(Version);
-	const int nDate = (int) strlen(Date);
+	T->m_wszBIOSVendor = ConvertToWideChar(LocateStringA(str, pBIOS->Vendor));
+	T->m_wszBIOSVersion = ConvertToWideChar(LocateStringA(str, pBIOS->Version));
+	T->m_wszBIOSReleaseDate = ConvertToWideChar(LocateStringA(str, pBIOS->ReleaseDate));
 
-	T->m_wszBIOSVendor = new WCHAR[nVendor + 1];
-	T->m_wszBIOSVersion = new WCHAR[nVersion + 1];
-	T->m_wszBIOSReleaseDate = new WCHAR[nDate + 1];
-	if (T->m_wszBIOSVendor)
-	{
-		::SecureZeroMemory(T->m_wszBIOSVendor, sizeof(WCHAR) * (nVendor + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, Vendor, nVendor, T->m_wszBIOSVendor, nVendor + 1);
-	}
-	if (T->m_wszBIOSVersion)
-	{
-		::SecureZeroMemory(T->m_wszBIOSVersion, sizeof(WCHAR) * (nVersion + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, Version, nVersion, T->m_wszBIOSVersion, nVersion + 1);
-	}
-	if (T->m_wszBIOSReleaseDate)
-	{
-		::SecureZeroMemory(T->m_wszBIOSReleaseDate, sizeof(WCHAR) * (nDate + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, Date, nDate, T->m_wszBIOSReleaseDate, nDate + 1);
-	}
 	if (pBIOS->Header.Length > 0x14)
 	{
 		T->m_BIOSSysVersion = pBIOS->MajorRelease << 16 | pBIOS->MinorRelease;
@@ -131,63 +125,19 @@ bool SMBIOS::ProcSysInfo(SMBIOS* T, void* p)
 {
 	PSystemInfo pSystem = (PSystemInfo)p;
 	const char* str = toPointString(p);
-	const char* Manufactor = LocateStringA(str, pSystem->Manufacturer);
-	const char* ProductName = LocateStringA(str, pSystem->ProductName);
-	const char* Version = LocateStringA(str, pSystem->Version);
-	const char* SerialNumber = LocateStringA(str, pSystem->SN);
-	const int nManufactor = (int) strlen(Manufactor);
-	const int nProductName = (int) strlen(ProductName);
-	const int nVersion = (int) strlen(Version);
-	const int nSerialNumber = (int) strlen(SerialNumber);
+	T->m_wszSysManufactor = ConvertToWideChar(LocateStringA(str, pSystem->Manufacturer));
+	T->m_wszSysProductName = ConvertToWideChar(LocateStringA(str, pSystem->ProductName));
+	T->m_wszSysVersion = ConvertToWideChar(LocateStringA(str, pSystem->Version));
+	T->m_wszSysSerialNumber = ConvertToWideChar(LocateStringA(str, pSystem->SN));
 
-	T->m_wszSysManufactor = new WCHAR[nManufactor + 1];
-	T->m_wszSysProductName = new WCHAR[nProductName + 1];
-	T->m_wszSysVersion = new WCHAR[nVersion + 1];
-	T->m_wszSysSerialNumber = new WCHAR[nSerialNumber + 1];
-
-	if (T->m_wszSysManufactor)
-	{
-		::SecureZeroMemory(T->m_wszSysManufactor, sizeof(WCHAR)*(nManufactor + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, Manufactor, nManufactor, T->m_wszSysManufactor, nManufactor + 1);
-	}
-	if (T->m_wszSysProductName)
-	{
-		::SecureZeroMemory(T->m_wszSysProductName, sizeof(WCHAR)*(nProductName + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, ProductName, nProductName, T->m_wszSysProductName, nProductName + 1);
-	}
-	if (T->m_wszSysVersion)
-	{
-		::SecureZeroMemory(T->m_wszSysVersion, sizeof(WCHAR)*(nVersion + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, Version, nVersion, T->m_wszSysVersion, nVersion + 1);
-	}
-	if (T->m_wszSysSerialNumber)
-	{
-		::SecureZeroMemory(T->m_wszSysSerialNumber, sizeof(WCHAR)*(nSerialNumber + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, SerialNumber, nSerialNumber, T->m_wszSysSerialNumber, nSerialNumber + 1);
-	}
 	if (pSystem->Header.Length > 0x08)
 	{
 		memcpy_s(&(T->m_SysUUID), sizeof(UUID), pSystem->UUID, 16);
 	}
 	if (pSystem->Header.Length > 0x19)
 	{
-		const char* SKU = LocateStringA(str, pSystem->SKUNumber);
-		const char* Family = LocateStringA(str, pSystem->Family);
-		const int nSKU = (int) strlen(SKU);
-		const int nFamily = (int) strlen(Family);
-
-		T->m_wszSysSKU = new WCHAR[nSKU + 1];
-		T->m_wszSysFamily = new WCHAR[nFamily + 1];
-		if (T->m_wszSysSKU)
-		{
-			::SecureZeroMemory(T->m_wszSysSKU, sizeof(WCHAR)*(nSKU + 1));
-			::MultiByteToWideChar(CP_ACP, NULL, SKU, nSKU, T->m_wszSysSKU, nSKU + 1);
-		}
-		if (T->m_wszSysFamily)
-		{
-			::SecureZeroMemory(T->m_wszSysFamily, sizeof(WCHAR)*(nFamily + 1));
-			::MultiByteToWideChar(CP_ACP, NULL, Family, nFamily, T->m_wszSysFamily, nFamily + 1);
-		}
+		T->m_wszSysSKU = ConvertToWideChar(LocateStringA(str, pSystem->SKUNumber));
+		T->m_wszSysFamily = ConvertToWideChar(LocateStringA(str, pSystem->Family));
 	}
 	return true;
 }
@@ -196,58 +146,15 @@ bool SMBIOS::ProcBoardInfo(SMBIOS* T, void* p)
 {
 	PBoardInfo pBoard = (PBoardInfo)p;
 	const char* str = toPointString(p);
-	const char* Manufactor = LocateStringA(str, pBoard->Manufacturer);
-	const char* ProductName = LocateStringA(str, pBoard->Product);
-	const char* Version = LocateStringA(str, pBoard->Version);
-	const char* SerialNumber = LocateStringA(str, pBoard->SN);
-	const char* AssetTag = LocateStringA(str, pBoard->AssetTag);
-	const int nManufactor = (int) strlen(Manufactor);
-	const int nProductName = (int) strlen(ProductName);
-	const int nVersion = (int) strlen(Version);
-	const int nSerialNumber = (int) strlen(SerialNumber);
-	const int nAssetTag = (int) strlen(AssetTag);
+	T->m_wszBoardManufactor = ConvertToWideChar(LocateStringA(str, pBoard->Manufacturer));
+	T->m_wszBoardProductName = ConvertToWideChar(LocateStringA(str, pBoard->Product));
+	T->m_wszBoardVersion = ConvertToWideChar(LocateStringA(str, pBoard->Version));
+	T->m_wszBoardSerialNumber = ConvertToWideChar(LocateStringA(str, pBoard->SN));
+	T->m_wszBoardAssetTag = ConvertToWideChar(LocateStringA(str, pBoard->AssetTag));
 
-	T->m_wszBoardManufactor = new WCHAR[nManufactor + 1];
-	T->m_wszBoardProductName = new WCHAR[nProductName + 1];
-	T->m_wszBoardVersion = new WCHAR[nVersion + 1];
-	T->m_wszBoardSerialNumber = new WCHAR[nSerialNumber + 1];
-	T->m_wszBoardAssetTag = new WCHAR[nAssetTag + 1];
-
-	if (T->m_wszBoardManufactor)
-	{
-		::SecureZeroMemory(T->m_wszBoardManufactor, sizeof(WCHAR)*(nManufactor + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, Manufactor, nManufactor, T->m_wszBoardManufactor, nManufactor);
-	}
-	if (T->m_wszBoardProductName)
-	{
-		::SecureZeroMemory(T->m_wszBoardProductName, sizeof(WCHAR)*(nProductName + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, ProductName, nProductName, T->m_wszBoardProductName, nProductName);
-	}
-	if (T->m_wszBoardVersion)
-	{
-		::SecureZeroMemory(T->m_wszBoardVersion, sizeof(WCHAR)*(nVersion + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, Version, nVersion, T->m_wszBoardVersion, nVersion);
-	}
-	if (T->m_wszBoardSerialNumber)
-	{
-		::SecureZeroMemory(T->m_wszBoardSerialNumber, sizeof(WCHAR)*(nSerialNumber + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, SerialNumber, nSerialNumber, T->m_wszBoardSerialNumber, nSerialNumber);
-	}
-	if (T->m_wszBoardAssetTag)
-	{
-		::SecureZeroMemory(T->m_wszBoardAssetTag, sizeof(WCHAR)*(nAssetTag + 1));
-		::MultiByteToWideChar(CP_ACP, NULL, AssetTag, nAssetTag, T->m_wszBoardAssetTag, nAssetTag);
-	}
 	if (pBoard->Header.Length > 0x08)
 	{
-		const char* Location = LocateStringA(str, pBoard->LocationInChassis);
-		const int nLocation = (int) strlen(Location);
-		T->m_wszBoardLocation = new WCHAR[nLocation + 1];
-		if (T->m_wszBoardLocation)
-		{
-			::SecureZeroMemory(T->m_wszBoardLocation, sizeof(WCHAR)*(nLocation + 1));
-			::MultiByteToWideChar(CP_ACP, NULL, Location, nLocation, T->m_wszBoardLocation, nLocation);
-		}
+		T->m_wszBoardLocation = ConvertToWideChar(LocateStringA(str, pBoard->LocationInChassis));
 	}
 	return true;
 }
@@ -322,56 +229,47 @@ SMBIOS::SMBIOS() :
 	m_wszBoardAssetTag(NULL),
 	m_wszBoardLocation(NULL)
 {
+	initialization();
 }
 
 SMBIOS::~SMBIOS()
 {
 	if (m_wszBIOSVendor)
-		delete m_wszBIOSVendor;
+		delete[] m_wszBIOSVendor;
 	if (m_wszBIOSVersion)
-		delete m_wszBIOSVersion;
+		delete[] m_wszBIOSVersion;
 	if (m_wszBIOSReleaseDate)
-		delete m_wszBIOSReleaseDate;
+		delete[] m_wszBIOSReleaseDate;
 	if (m_wszSysManufactor)
-		delete m_wszSysManufactor;
+		delete[] m_wszSysManufactor;
 	if (m_wszSysProductName)
-		delete m_wszSysProductName;
+		delete[] m_wszSysProductName;
 	if (m_wszSysVersion)
-		delete m_wszSysVersion;
+		delete[] m_wszSysVersion;
 	if (m_wszSysSerialNumber)
-		delete m_wszSysSerialNumber;
+		delete[] m_wszSysSerialNumber;
 	if (m_wszSysSKU)
-		delete m_wszSysSKU;
+		delete[] m_wszSysSKU;
 	if (m_wszSysFamily)
-		delete m_wszSysFamily;
+		delete[] m_wszSysFamily;
 	if (m_wszBoardManufactor)
-		delete m_wszBoardManufactor;
+		delete[] m_wszBoardManufactor;
 	if (m_wszBoardProductName)
-		delete m_wszBoardProductName;
+		delete[] m_wszBoardProductName;
 	if (m_wszBoardVersion)
-		delete m_wszBoardVersion;
+		delete[] m_wszBoardVersion;
 	if (m_wszBoardSerialNumber)
-		delete m_wszBoardSerialNumber;
+		delete[] m_wszBoardSerialNumber;
 	if (m_wszBoardAssetTag)
 		delete m_wszBoardAssetTag;
 	if (m_wszBoardLocation)
-		delete m_wszBoardLocation;
+		delete[] m_wszBoardLocation;
 }
 
 const SMBIOS& SMBIOS::getInstance(void)
 {
-	static SMBIOS* pInstance = NULL;
-	if (pInstance == NULL)
-	{
-		// need entry a mutex for thread safe
-		if (pInstance == NULL)
-		{
-			pInstance = new SMBIOS();
-			pInstance->initialization();
-		}
-	}
-	const SMBIOS& ref = (*pInstance);
-	return ref;
+    static SMBIOS instance;  // C++11 guarantee thread safety + lazy initialization
+    return instance;
 }
 
 void SMBIOS::initialization(void)
@@ -481,8 +379,9 @@ bool SMBIOS::getWmiSmbios(BYTE ** data, UINT * length)
 		pSvc->Release();
 		pLoc->Release();
 		CoUninitialize();
+		return false;
 	}
-	
+
 	result = pSvcSmbios->CreateInstanceEnum(L"MSSMBios_RawSMBiosTables", 0, NULL, &pEnumerator);
 	if (SUCCEEDED(result)) {
 		while (pEnumerator) {
